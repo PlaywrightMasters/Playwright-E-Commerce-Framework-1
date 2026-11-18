@@ -46,3 +46,17 @@ next-env.d.ts
 .eslintcache
 .turbo
 .swc
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+# env (examples are committed; real values never are)
+.env.*
+!.env.example
+
+# logs
+*.log
