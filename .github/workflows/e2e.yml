@@ -1,0 +1,95 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Nightly at 02:00 UTC: catches breakage caused by the target sites changing
+    # underneath us, as distinct from breakage caused by a commit.
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 24
+
+jobs:
+  static:
+    name: Type check + unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      # Pure functions only: no browser download, no network.
+      - run: npx playwright test --project=unit
+
+  api:
+    name: API suite
+    needs: static
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      # No browser needed for the API project.
+      - run: npx playwright test --project=api
+      - name: Upload report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-api
+          path: playwright-report/
+          retention-days: 14
+
+  ui:
+    name: UI suite (${{ matrix.project }})
+    needs: static
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      # One engine failing must not hide the results of the others.
+      fail-fast: false
+      matrix:
+        project: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps ${{ matrix.project }}
+      - run: npx playwright test --project=${{ matrix.project }}
+      - name: Upload report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.project }}
+          path: playwright-report/
+          retention-days: 14
+      - name: Upload traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces-${{ matrix.project }}
+          path: test-results/
+          retention-days: 7

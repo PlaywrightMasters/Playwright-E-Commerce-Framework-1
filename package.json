@@ -1,0 +1,30 @@
+{
+  "name": "playwright-ecommerce-alexa",
+  "version": "1.0.0",
+  "description": "Playwright + TypeScript test framework covering an e-commerce storefront (UI), checkout calculation logic and a REST API",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "test:unit": "playwright test --project=unit",
+    "test:api": "playwright test --project=api",
+    "test:ui": "playwright test --project=chromium --project=firefox --project=webkit",
+    "test:chromium": "playwright test --project=chromium",
+    "test:smoke": "playwright test --grep @smoke --project=api --project=chromium",
+    "test:defects": "playwright test --grep @known-defect --project=api --project=chromium",
+    "test:calc": "playwright test tests/ui/checkout-calculations.spec.ts --project=chromium",
+    "test:headed": "playwright test --project=chromium --headed",
+    "test:debug": "playwright test --project=chromium --debug",
+    "report": "playwright show-report",
+    "typecheck": "tsc --noEmit",
+    "browsers": "playwright install chromium firefox webkit",
+    "codegen": "playwright codegen https://www.saucedemo.com"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1",
+    "@types/node": "^24.19.2",
+    "typescript": "^7.0.2"
+  }
+}
